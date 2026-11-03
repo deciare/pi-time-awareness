@@ -1,5 +1,3 @@
 {
-	"enabled": true,
-	"timeZone": "auto",
-	"nowLine": false
+	"timeZone": "auto"
 }

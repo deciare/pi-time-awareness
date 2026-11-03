@@ -35,9 +35,7 @@ test("a missing configuration file leaves usable defaults", () => {
 			projectTrusted: false,
 		});
 		assert.deepEqual(loaded.config, defaultTimeAwarenessConfig());
-		assert.equal(loaded.config.enabled, true);
 		assert.equal(loaded.config.timeZone, "auto");
-		assert.equal(loaded.config.nowLine, false);
 		assert.deepEqual(loaded.errors, []);
 	} finally {
 		rmSync(root, { recursive: true, force: true });
@@ -47,14 +45,14 @@ test("a missing configuration file leaves usable defaults", () => {
 test("values are read from the agent directory file", () => {
 	const root = workspace();
 	try {
-		writeConfig(root, JSON.stringify({ enabled: false, timeZone: "Europe/Berlin", nowLine: true }));
+		writeConfig(root, JSON.stringify({ timeZone: "Europe/Berlin" }));
 		const loaded = loadTimeAwarenessConfig({
 			agentDir: root,
 			configDirName: ".pi",
 			cwd: root,
 			projectTrusted: false,
 		});
-		assert.deepEqual(loaded.config, { enabled: false, timeZone: "Europe/Berlin", nowLine: true });
+		assert.deepEqual(loaded.config, { timeZone: "Europe/Berlin" });
 		assert.deepEqual(loaded.errors, []);
 	} finally {
 		rmSync(root, { recursive: true, force: true });

@@ -81,27 +81,6 @@ test("the context hook returns nothing when there is nothing to prefix", () => {
 	});
 });
 
-test("disabling the extension leaves the conversation alone", () => {
-	withConfig({ enabled: false, timeZone: "America/New_York" }, (handlers) => {
-		const messages = [{ role: "user", content: "hello", timestamp: NOVEMBER }] as unknown as AgentMessage[];
-		assert.equal(handlers.get("context")?.({ type: "context", messages }, undefined), undefined);
-	});
-});
-
-test("the current-time section appears only when asked for", () => {
-	withConfig({ timeZone: "America/New_York" }, (handlers) => {
-		const options = { sections: {} as Record<string, string> };
-		handlers.get("before_agent_start")?.({ systemPromptOptions: options }, undefined);
-		assert.equal(options.sections["current_time"], undefined);
-	});
-
-	withConfig({ timeZone: "America/New_York", nowLine: true }, (handlers) => {
-		const options = { sections: {} as Record<string, string> };
-		handlers.get("before_agent_start")?.({ systemPromptOptions: options }, undefined);
-		assert.match(options.sections["current_time"] ?? "", /^Now: \w{3} \d{4}-\d{2}-\d{2} \d{2}:\d{2} .+ \(America\/New_York\)$/);
-	});
-});
-
 test("a bad configuration is reported and the defaults still apply", () => {
 	withConfig({ timeZone: "Mars/Olympus" }, (handlers, root) => {
 		const warnings: string[] = [];

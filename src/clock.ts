@@ -106,16 +106,3 @@ export function formatMessagePrefix(atMs: number, timeZone: string): string {
 	const parts = timeParts(atMs, timeZone);
 	return `[${parts.weekday} ${parts.date} ${parts.clock} ${parts.zone}] `;
 }
-
-/**
- * Formats the current-time line for the `current_time` system-prompt section.
- *
- * Unlike the prefix this names the zone, not just its abbreviation: the
- * abbreviation is there for the reader, the IANA name is there for the model,
- * which cannot otherwise tell whether `EST` means New York or Sydney.
- */
-export function formatPromptLine(atMs: number, timeZone: string): string {
-	if (!Number.isFinite(atMs)) return "";
-	const parts = timeParts(atMs, timeZone);
-	return `Now: ${parts.weekday} ${parts.date} ${parts.clock} ${parts.zone} (${timeZone})`;
-}

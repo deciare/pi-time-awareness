@@ -8,7 +8,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { formatMessagePrefix, formatPromptLine, resolveTimeZone } from "../src/clock.ts";
+import { formatMessagePrefix, resolveTimeZone } from "../src/clock.ts";
 
 /** 2026-11-02T21:31:00Z — after the northern DST change, so New York is on EST. */
 const NOVEMBER = Date.UTC(2026, 10, 2, 21, 31);
@@ -57,10 +57,6 @@ test("the prefix uses the weekday, ISO date, 24-hour time and abbreviation", () 
 
 test("midnight is 00, never 24", () => {
 	assert.equal(formatMessagePrefix(JULY, "America/New_York"), "[Wed 2026-07-15 00:05 EDT] ");
-});
-
-test("the prompt line names the zone as well as its abbreviation", () => {
-	assert.equal(formatPromptLine(NOVEMBER, "America/New_York"), "Now: Mon 2026-11-02 16:31 EST (America/New_York)");
 });
 
 test("a zone with no short abbreviation falls back to an offset, not a guess", () => {

@@ -1,13 +1,8 @@
 # pi-time-awareness
 
-`pi-time-awareness` is a [Pi](https://pi.dev) extension that tells the model what
-time it is. Two independent pieces, both off nothing and on by default:
-
-1. **Every user message reaching the model carries the local time it was sent.**
-   `[Mon 2026-11-02 16:31 EST] ` goes in front of the text, taken from the
-   message's own timestamp in the transcript.
-2. **The system prompt can name the current time** (`nowLine`, off by default),
-   so "what time is it" does not need a shell call.
+`pi-time-awareness` is a [Pi](https://pi.dev) extension that tells the model when
+each user message was sent. `[Mon 2026-11-02 16:31 EST] ` goes in front of the
+text, taken from that message's own timestamp in the transcript.
 
 ## Why this exists
 
@@ -46,6 +41,9 @@ A git package works the same way once the repository is published:
 pi install git:github.com/deciare/pi-time-awareness
 ```
 
+That list is also the on/off switch: remove the entry, or `pi remove`, and the
+extension stops. There is no setting of its own that repeats Pi's own decision.
+
 No configuration is required. The defaults prefix user messages in the
 container's own zone, which is what you want when `TZ` is set on the container.
 
@@ -59,17 +57,13 @@ so a typo cannot leave the extension looking configured when it is not.
 
 ```json
 {
-  "enabled": true,
-  "timeZone": "auto",
-  "nowLine": false
+  "timeZone": "auto"
 }
 ```
 
 | Key | Type | Default | Meaning |
 |---|---|---:|---|
-| `enabled` | boolean | `true` | Prefix user messages at all. |
 | `timeZone` | string | `"auto"` | `auto` follows the container; any other value is an IANA zone name, validated at load time. |
-| `nowLine` | boolean | `false` | Add a `current_time` section to the system prompt for each request. |
 
 ## Which zone the prefixes are written in
 
@@ -83,7 +77,7 @@ so a typo cannot leave the extension looking configured when it is not.
 The resolved zone and its source are written to the log once per session:
 
 ```
-time-awareness: zone America/New_York (env America/New_York), prefixing
+time-awareness: zone America/New_York (env America/New_York)
 ```
 
 That line exists because this is the one setting whose failure is silent. A
@@ -104,12 +98,9 @@ than configurable: a prefix that changes shape between messages is noise, and
 this shape reads as a timestamp without a legend.
 
 Abbreviations are `en-US` short names. Zones that locale has no abbreviation for
-render as an offset — `GMT+1` rather than `CET` — which is honest but vague. The
-`nowLine` section therefore names the IANA zone as well:
-
-```
-Now: Mon 2026-11-02 16:31 EST (America/New_York)
-```
+render as an offset — `GMT+1` rather than `CET` — which is honest but vague. A
+reader who needs the exact zone should set `timeZone` explicitly and read it from
+the log line.
 
 ## What gets a prefix
 
@@ -121,13 +112,10 @@ text block grafted into them.
 
 ## Cost
 
-- Every prefixed message costs a handful of tokens, once per message and then
-  on every replay of the history.
-- The prefix is derived from the message's own timestamp, so it is byte
-  identical on every re-send and does not disturb prompt caching.
-- `nowLine` is the exception: it changes the system prompt, which is the start
-  of the cached prefix. Turn it on for sessions where orientation matters more
-  than cache locality.
+Every prefixed message costs a handful of tokens, once per message and then on
+every replay of the history. The prefix is derived from the message's own
+timestamp, so it is byte identical on every re-send and does not disturb prompt
+caching.
 
 ## Tests
 

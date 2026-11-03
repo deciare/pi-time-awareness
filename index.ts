@@ -6,29 +6,17 @@
  * SPDX-License-Identifier: MIT
  */
 
-import {
-	CONFIG_DIR_NAME,
-	getAgentDir,
-	type ExtensionAPI,
-	type ExtensionContext,
-} from "@earendil-works/pi-coding-agent";
-import { formatMessagePrefix, formatPromptLine, resolveTimeZone, type ResolvedTimeZone } from "./src/clock.ts";
-import {
-	defaultTimeAwarenessConfig,
-	loadTimeAwarenessConfig,
-	type TimeAwarenessConfig,
-} from "./src/config.ts";
+import { CONFIG_DIR_NAME, getAgentDir, type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { formatMessagePrefix, resolveTimeZone, type ResolvedTimeZone } from "./src/clock.ts";
+import { defaultTimeAwarenessConfig, loadTimeAwarenessConfig } from "./src/config.ts";
 import { prefixUserMessages } from "./src/inject.ts";
-
-/** Name of the system-prompt section that carries the current time. */
-const NOW_SECTION = "current_time";
 
 /** Reports a configuration or setup problem without disturbing the agent turn. */
 function warn(message: string): void {
 	console.warn(`time-awareness: ${message}`);
 }
 
-/** Reports a setting that has a silent failure mode when it is wrong. */
+/** Reports a setting whose failure is silent when it is wrong. */
 function note(message: string): void {
 	console.info(`time-awareness: ${message}`);
 }
@@ -41,13 +29,12 @@ function describeError(error: unknown): string {
 /**
  * Registers time awareness with Pi.
  *
- * Two independent pieces of behaviour: every user message reaching the model
- * through `context` carries the local time it was sent, and, when `nowLine` is
- * on, the system prompt names the time of the request itself.
+ * Every user message reaching the model through `context` carries the local time
+ * it was sent. Whether the extension runs at all is Pi's decision, made by the
+ * `settings.json` package list, so there is no setting of our own that repeats it.
  */
 export default function timeAwarenessExtension(pi: ExtensionAPI): void {
-	let config: TimeAwarenessConfig = defaultTimeAwarenessConfig();
-	let zone: ResolvedTimeZone = resolveTimeZone(undefined);
+	let zone: ResolvedTimeZone = resolveTimeZone(defaultTimeAwarenessConfig().timeZone);
 
 	/** Formats a message timestamp in the zone currently in force. */
 	const prefixFor = (atMs: number): string => formatMessagePrefix(atMs, zone.timeZone);
@@ -59,20 +46,17 @@ export default function timeAwarenessExtension(pi: ExtensionAPI): void {
 			cwd: ctx.cwd,
 			projectTrusted: ctx.isProjectTrusted(),
 		});
-		config = loaded.config;
 		for (const error of loaded.errors) warn(error);
 
-		zone = resolveTimeZone(config.timeZone);
+		zone = resolveTimeZone(loaded.config.timeZone);
 		// One line per session, because the zone is the one part of this
 		// extension whose failure is silent: a wrong `TZ` produces confident,
 		// wrong timestamps rather than an error.
 		const origin = zone.raw === undefined ? zone.source : `${zone.source} ${zone.raw}`;
-		note(`zone ${zone.timeZone} (${origin}), ${config.enabled ? "prefixing" : "disabled"}`);
+		note(`zone ${zone.timeZone} (${origin})`);
 	});
 
 	pi.on("context", (event) => {
-		if (!config.enabled) return;
-
 		try {
 			const messages = prefixUserMessages(event.messages, prefixFor);
 			if (messages === event.messages) return;
@@ -81,16 +65,6 @@ export default function timeAwarenessExtension(pi: ExtensionAPI): void {
 			// A broken timestamp is not worth a failed turn.
 			warn(`prefixing failed: ${describeError(error)}`);
 			return;
-		}
-	});
-
-	pi.on("before_agent_start", (event) => {
-		if (!config.enabled || !config.nowLine) return;
-
-		try {
-			event.systemPromptOptions.sections[NOW_SECTION] = formatPromptLine(Date.now(), zone.timeZone);
-		} catch (error) {
-			warn(`now line failed: ${describeError(error)}`);
 		}
 	});
 }

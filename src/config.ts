@@ -11,15 +11,11 @@ import { resolve } from "node:path";
 
 /** Effective time-awareness configuration. */
 export interface TimeAwarenessConfig {
-	/** Whether user messages are prefixed at all. Defaults to true. */
-	enabled: boolean;
 	/**
 	 * Zone used for the prefixes: `auto` follows the container (`TZ`, then
 	 * `/etc/localtime`, then UTC), and any other value is an IANA zone name.
 	 */
 	timeZone: string;
-	/** Also name the current time in a `current_time` system-prompt section. Defaults to false. */
-	nowLine: boolean;
 }
 
 /** Files consulted while loading configuration. */
@@ -45,11 +41,11 @@ export const CONFIG_FILENAME = "pi-time-awareness.json";
 /** The `timeZone` value that defers to the container. */
 export const AUTO_TIME_ZONE = "auto";
 
-const CONFIG_KEYS = new Set(["enabled", "timeZone", "nowLine"]);
+const CONFIG_KEYS = new Set(["timeZone"]);
 
 /** Configuration used when no file exists. */
 export function defaultTimeAwarenessConfig(): TimeAwarenessConfig {
-	return { enabled: true, timeZone: AUTO_TIME_ZONE, nowLine: false };
+	return { timeZone: AUTO_TIME_ZONE };
 }
 
 /** Whether an IANA zone name is one this runtime can actually format with. */
@@ -97,20 +93,6 @@ function parseConfigFile(configPath: string): { values?: ConfigFileValues; error
 
 	const values: ConfigFileValues = {};
 
-	if (parsed.enabled !== undefined) {
-		if (typeof parsed.enabled !== "boolean") {
-			return { error: `${configPath}: enabled must be true or false` };
-		}
-		values.enabled = parsed.enabled;
-	}
-
-	if (parsed.nowLine !== undefined) {
-		if (typeof parsed.nowLine !== "boolean") {
-			return { error: `${configPath}: nowLine must be true or false` };
-		}
-		values.nowLine = parsed.nowLine;
-	}
-
 	if (parsed.timeZone !== undefined) {
 		if (typeof parsed.timeZone !== "string" || parsed.timeZone.length === 0) {
 			return { error: `${configPath}: timeZone must be a non-empty string` };
@@ -142,6 +124,8 @@ function mergeConfigFile(values: ConfigFileValues, configPath: string, errors: s
  *
  * A missing file is normal: the defaults are usable as they stand, so mounting
  * the extension with `TZ` set on the container is enough to have it work.
+ * Enabling and disabling is Pi's job, through the `settings.json` package list,
+ * so this file has no switch of its own.
  */
 export function loadTimeAwarenessConfig(options: LoadTimeAwarenessConfigOptions): TimeAwarenessConfigLoad {
 	const globalPath = resolve(options.agentDir, CONFIG_FILENAME);
